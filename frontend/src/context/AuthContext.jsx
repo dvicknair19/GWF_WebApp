@@ -25,11 +25,17 @@ export const AuthProvider = ({ children }) => {
         return () => subscription.unsubscribe()
     }, [])
 
+    const setUserPassword = async (password) => {
+        const { error } = await supabase.auth.updateUser({ password })
+        if (error) throw error
+    }
+
     const value = {
         signUp: (data) => supabase.auth.signUp(data),
         signIn: (data) => supabase.auth.signInWithPassword(data),
         signOut: () => supabase.auth.signOut(),
         user,
+        setUserPassword,
     }
 
     return (

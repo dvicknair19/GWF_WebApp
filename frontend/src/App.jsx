@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import Login from './components/Auth/Login'
+import SetPassword from './components/Auth/SetPassword'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
 import Layout from './components/Layout/Layout'
 import ProfileForm from './components/VendorProfile/ProfileForm'
@@ -12,6 +13,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/confirm" element={<SetPassword />} />
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/" element={<ProfileForm />} />
             <Route path="/history" element={<ProfileHistory />} />
