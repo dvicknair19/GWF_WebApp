@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
@@ -9,25 +9,8 @@ const SetPassword = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(false)
-    const [isInviteFlow, setIsInviteFlow] = useState(false)
     const { setUserPassword } = useAuth()
     const navigate = useNavigate()
-
-    useEffect(() => {
-        // Parse the URL hash to detect an invite token
-        // Supabase invite links look like:
-        // https://app.com/#access_token=xxx&type=invite&...
-        const hash = window.location.hash
-        const params = new URLSearchParams(hash.replace('#', ''))
-        const type = params.get('type')
-
-        if (type === 'invite') {
-            setIsInviteFlow(true)
-        } else {
-            // Not an invite link — redirect to login
-            navigate('/login', { replace: true })
-        }
-    }, [navigate])
 
     const validate = () => {
         if (password.length < 8) {
@@ -51,17 +34,18 @@ const SetPassword = () => {
         try {
             await setUserPassword(password)
             setSuccess(true)
-            // Redirect to main app after 2 seconds so user can read success message
-            setTimeout(() => navigate('/', { replace: true }), 2000)
+            // Clear the invite hash so App.jsx stops rendering SetPassword,
+            // then navigate to / which will now show ProfileForm
+            setTimeout(() => {
+                window.location.hash = ''
+                navigate('/', { replace: true })
+            }, 2000)
         } catch (err) {
             setError(err.message || 'Failed to set password. Please try again.')
         } finally {
             setLoading(false)
         }
     }
-
-    // Don't render anything until we confirm it's an invite flow
-    if (!isInviteFlow) return null
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">

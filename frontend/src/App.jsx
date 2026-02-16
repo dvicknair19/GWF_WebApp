@@ -7,15 +7,19 @@ import Layout from './components/Layout/Layout'
 import ProfileForm from './components/VendorProfile/ProfileForm'
 import ProfileHistory from './components/VendorProfile/ProfileHistory'
 
+const isInviteFlow = () => {
+  const params = new URLSearchParams(window.location.hash.replace('#', ''))
+  return params.get('type') === 'invite'
+}
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/confirm" element={<SetPassword />} />
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="/" element={<ProfileForm />} />
+            <Route path="/" element={isInviteFlow() ? <SetPassword /> : <ProfileForm />} />
             <Route path="/history" element={<ProfileHistory />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
