@@ -37,8 +37,7 @@ const SetPassword = () => {
             // Clear the invite hash so App.jsx stops rendering SetPassword,
             // then navigate to / which will now show ProfileForm
             setTimeout(() => {
-                window.location.hash = ''
-                navigate('/', { replace: true })
+                window.location.replace('/') // Forces full reload and clears hash
             }, 2000)
         } catch (err) {
             setError(err.message || 'Failed to set password. Please try again.')
