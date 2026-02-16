@@ -1,6 +1,6 @@
 const axios = require('axios')
 
-const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5000'
+const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5050'
 
 const generateDocument = async (profileData) => {
     try {

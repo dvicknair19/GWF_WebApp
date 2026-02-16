@@ -4,20 +4,16 @@ const cors = require('cors')
 const authRoutes = require('./routes/auth')
 const vendorRoutes = require('./routes/vendor')
 const profileRoutes = require('./routes/profiles')
-const { createClient } = require('@supabase/supabase-js')
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
 // Middleware
-app.use(cors())
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true
+}))
 app.use(express.json())
-
-// Supabase Admin Client
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 // Routes
 app.use('/api/auth', authRoutes)
@@ -39,4 +35,4 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
 
-module.exports = { app, supabase }
+module.exports = { app }

@@ -62,7 +62,7 @@ Return ONLY the JSON object, no additional text or formatting.`
         const response = await axios.post(
             API_URL,
             {
-                model: 'claude-3-5-sonnet-20241022', // updated model name
+                model: 'claude-3-5-sonnet-20241022',
                 max_tokens: 4000,
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.3

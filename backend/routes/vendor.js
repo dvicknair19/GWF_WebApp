@@ -32,7 +32,6 @@ router.post('/generate', authenticate, async (req, res) => {
 
         // 2. Research if needed
         if (!researchData) {
-            // Basic rate limiting or queue could go here
             researchData = await claudeService.researchVendor(vendorName)
 
             // 3. Update cache
@@ -77,7 +76,7 @@ router.post('/generate', authenticate, async (req, res) => {
 })
 
 // Download Document
-router.get('/download/:id', async (req, res) => { // Removed authenticate for easier download link access, or could add query token
+router.get('/download/:id', authenticate, async (req, res) => {
     try {
         // 1. Fetch profile data
         const { data: profile, error } = await supabase

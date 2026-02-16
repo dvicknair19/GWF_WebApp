@@ -168,9 +168,9 @@ def _set_news_list(cell, news_list):
         text = ""
         if isinstance(item, dict):
             date = item.get("date", "")
-            headline = item.get("headline", item.get("title", "")) # Handle both keys
+            headline = item.get("headline", item.get("title", ""))
             summary = item.get("summary", "")
-            text = f"{date} - {headline}"
+            text = f"{date} - {headline}" if date else headline
             if summary:
                 text += f": {summary}"
         else:

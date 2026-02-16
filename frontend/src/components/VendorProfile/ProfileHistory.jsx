@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import api from '../../services/api'
 import { Loader2, RefreshCw, Download, Search } from 'lucide-react'
 
@@ -32,7 +32,7 @@ const ProfileHistory = () => {
                 clientName: profile.client_name,
                 vendorName: profile.vendor_name,
                 dealDescription: profile.deal_description,
-                forceRegenerate: true // Just re-doc gen not re-research technically, but endpoint logic handles it
+                forceRegenerate: true
             })
             // Trigger download
             const link = document.createElement('a')
