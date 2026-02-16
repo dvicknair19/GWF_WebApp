@@ -140,40 +140,53 @@ def _set_italic_text(cell, text):
     run = paragraph.add_run(str(text) if text else "N/A")
     run.italic = True
 
+def _add_hyperlink(paragraph, text, url):
+    """Add a clickable hyperlink to a paragraph."""
+    part = paragraph.part
+    r_id = part.relate_to(url, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink', is_external=True)
+
+    hyperlink = OxmlElement('w:hyperlink')
+    hyperlink.set(qn('r:id'), r_id)
+
+    r = OxmlElement('w:r')
+    rPr = OxmlElement('w:rPr')
+    rStyle = OxmlElement('w:rStyle')
+    rStyle.set(qn('w:val'), 'Hyperlink')
+    rPr.append(rStyle)
+    r.append(rPr)
+
+    t = OxmlElement('w:t')
+    t.text = text
+    r.append(t)
+    hyperlink.append(r)
+    paragraph._p.append(hyperlink)
+
 def _set_news_list(cell, news_list):
-    """Populate news items as bullet points."""
+    """Populate news items as bullet points with hyperlinks."""
     for p in cell.paragraphs:
         p.clear()
-        
+
     if not news_list:
         if not cell.paragraphs: cell.add_paragraph()
         cell.paragraphs[0].text = "No recent news available"
         return
 
-    # Normalize list
     if not isinstance(news_list, list):
         news_list = [news_list]
 
-    # Ensure we have at least one paragraph to start
     if not cell.paragraphs:
         cell.add_paragraph()
 
     for i, item in enumerate(news_list):
-        if i == 0:
-            paragraph = cell.paragraphs[0]
-        else:
-            paragraph = cell.add_paragraph()
-        
-        # Build text string based on available fields from Claude API
-        text = ""
+        paragraph = cell.paragraphs[0] if i == 0 else cell.add_paragraph()
+
         if isinstance(item, dict):
-            date = item.get("date", "")
-            headline = item.get("headline", item.get("title", ""))
-            summary = item.get("summary", "")
-            text = f"{date} - {headline}" if date else headline
-            if summary:
-                text += f": {summary}"
+            title = item.get("title", item.get("headline", ""))
+            url = item.get("url", "")
+            paragraph.add_run("• ")
+            if url and url.startswith("http"):
+                _add_hyperlink(paragraph, title, url)
+            else:
+                paragraph.add_run(title)
         else:
-            text = str(item)
-            
-        paragraph.add_run(f"• {text}")
+            paragraph.add_run(f"• {item}")

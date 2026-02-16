@@ -34,13 +34,17 @@ const ProfileHistory = () => {
                 dealDescription: profile.deal_description,
                 forceRegenerate: true
             })
-            // Trigger download
+            // Trigger download with auth
+            const path = response.data.downloadUrl.replace(/^\/api/, '')
+            const fileResponse = await api.get(path, { responseType: 'blob' })
+            const url = window.URL.createObjectURL(new Blob([fileResponse.data]))
             const link = document.createElement('a')
-            link.href = response.data.downloadUrl
-            link.download = `${profile.client_name}_${profile.vendor_name}_MOA.docx`
+            link.href = url
+            link.setAttribute('download', `${profile.client_name}_${profile.vendor_name}_MOA.docx`)
             document.body.appendChild(link)
             link.click()
-            document.body.removeChild(link)
+            link.remove()
+            window.URL.revokeObjectURL(url)
         } catch (err) {
             alert('Failed to regenerate document')
         } finally {

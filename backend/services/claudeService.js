@@ -36,10 +36,6 @@ Return your response as a valid JSON object with the following structure:
         {
             "title": "Recent news article title 2",
             "url": "https://example.com/news2"
-        },
-        {
-            "title": "Recent news article title 3",
-            "url": "https://example.com/news3"
         }
     ]
 }
@@ -53,7 +49,7 @@ Requirements:
 - Estimated Annual Revenue: Use the most recent fiscal year data available (2024 or later preferred)
 - Employees: Use current headcount (2025-2026 if available)
 - When providing financial data, always include the year (e.g., "$64B (FY 2024)" not just "$64B")
-- For recent_news, include 2-3 relevant recent news articles from the past 3-6 months (2025-2026 articles strongly preferred)
+- For recent_news, include exactly 2 relevant recent news articles from the past 3-6 months (2025-2026 articles strongly preferred)
 - Competitors should be 4-6 direct, major competitors based on current market positioning
 
 Return ONLY the JSON object, no additional text or formatting.`
@@ -62,7 +58,7 @@ Return ONLY the JSON object, no additional text or formatting.`
         const response = await axios.post(
             API_URL,
             {
-                model: 'claude-3-5-sonnet-20241022',
+                model: 'claude-3-haiku-20240307',
                 max_tokens: 4000,
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.3
@@ -85,8 +81,11 @@ Return ONLY the JSON object, no additional text or formatting.`
         }
         return JSON.parse(content)
     } catch (error) {
-        console.error('Claude API Error:', error.response?.data || error.message)
-        throw new Error('Failed to research vendor via Claude API')
+        const detail = error.response?.data
+            ? JSON.stringify(error.response.data)
+            : error.message
+        console.error('Claude API Error:', detail)
+        throw new Error(`Failed to research vendor via Claude API: ${detail}`)
     }
 }
 

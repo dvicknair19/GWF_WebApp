@@ -11,9 +11,27 @@ const ProfileForm = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
+    const [forceRegenerate, setForceRegenerate] = useState(false)
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
+    }
+
+    const handleDownload = async () => {
+        try {
+            const path = success.downloadUrl.replace(/^\/api/, '')
+            const response = await api.get(path, { responseType: 'blob' })
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `${formData.clientName}_${formData.vendorName}_MOA.docx`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+        } catch (err) {
+            setError('Failed to download document')
+        }
     }
 
     const handleSubmit = async (e) => {
@@ -23,7 +41,7 @@ const ProfileForm = () => {
         setSuccess(null)
 
         try {
-            const response = await api.post('/vendor/generate', formData)
+            const response = await api.post('/vendor/generate', { ...formData, forceRegenerate })
             setSuccess({
                 message: 'Profile generated successfully!',
                 downloadUrl: response.data.downloadUrl,
@@ -102,7 +120,16 @@ const ProfileForm = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-end">
+                        <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={forceRegenerate}
+                                    onChange={(e) => setForceRegenerate(e.target.checked)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                Force Regenerate (bypass cache)
+                            </label>
                             <button
                                 type="submit"
                                 disabled={loading}
@@ -148,13 +175,12 @@ const ProfileForm = () => {
                                     </div>
                                     <div className="mt-4">
                                         <div className="-mx-2 -my-1.5 flex">
-                                            <a
-                                                href={success.downloadUrl}
-                                                download
+                                            <button
+                                                onClick={handleDownload}
                                                 className="bg-green-50 px-2 py-1.5 rounded-md text-sm font-medium text-green-800 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-50 focus:ring-green-600"
                                             >
                                                 Download Document
-                                            </a>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
