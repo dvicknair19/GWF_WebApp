@@ -1,0 +1,45 @@
+# Environment files (CRITICAL - contains API keys)
+**/.env
+**/.env.local
+**/.env.*.local
+.env
+.env.local
+
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+venv/
+env/
+.venv/
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+
+# Generated files
+*.docx
+!templates/*.docx
+!/python-microservice/templates/TEMPLATE*.docx
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-*
