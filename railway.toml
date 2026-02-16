@@ -1,0 +1,4 @@
+# Railway monorepo configuration
+# Each service is deployed separately in Railway dashboard,
+# pointing to this repo with its respective root directory.
+# See README.md for deployment instructions.

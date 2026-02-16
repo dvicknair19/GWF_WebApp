@@ -1,0 +1,17 @@
+{
+  "name": "gwf-webapp",
+  "version": "1.0.0",
+  "description": "GWF WebApp monorepo - React frontend, Node backend, Python microservice",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names \"backend,frontend,python\" --prefix-colors \"blue,green,yellow\" \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:python\"",
+    "dev:backend": "cd backend && node server.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:python": "cd python-microservice && python3 app.py",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../python-microservice && pip3 install -r requirements.txt",
+    "build": "cd frontend && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
