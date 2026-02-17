@@ -172,7 +172,11 @@ def _set_news_list(cell, news_list):
         news_list = [news_list]
 
     for item in news_list:
-        p = cell.add_paragraph(style='List Bullet')
+        p = cell.add_paragraph()
+        p.paragraph_format.left_indent = Pt(18)
+        # Add bullet character as the first run
+        bullet_run = p.add_run("• ")
+        bullet_run.font.size = Pt(10)
         if isinstance(item, dict):
             title = item.get("title", item.get("headline", ""))
             url = item.get("url", "")
