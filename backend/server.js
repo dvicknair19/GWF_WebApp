@@ -12,7 +12,15 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
 // Middleware
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: IS_PRODUCTION
+        ? process.env.CORS_ORIGIN
+        : (origin, callback) => {
+            if (!origin || /^http:\/\/localhost(:\d+)?$/.test(origin)) {
+                callback(null, true)
+            } else {
+                callback(new Error('Not allowed by CORS'))
+            }
+        },
     credentials: true
 }))
 app.use(express.json())

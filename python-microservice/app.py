@@ -11,7 +11,6 @@ def generate_document():
     {
       "client_name": "Acme Corp",
       "vendor_name": "TechVendor Inc",
-      "deal_description": "3-year software license",
       "research_data": { ... } // Claude API response
     }
     """
@@ -28,11 +27,9 @@ def generate_document():
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Generate Word doc
-        # Note: deal_description is optional
         output_path = generate_vendor_profile(
             client_name=client_name,
             vendor_name=vendor_name,
-            deal_description=data.get('deal_description', ''),
             research_data=research_data
         )
         

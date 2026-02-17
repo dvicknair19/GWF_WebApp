@@ -18,6 +18,8 @@ Please provide detailed information about the vendor "${vendorName}" that would 
 
 Return your response as a valid JSON object with the following structure:
 {
+    "confidence_score": 95,
+    "matched_vendor_name": "Official Company Name Inc.",
     "vendor_profile_paragraph": "A neutral, objective 3-4 sentence description of the company's business operations, market segment, scale of operations, and factual characteristics. Write as an impartial third-party analyst would - focus solely on observable facts, business model, and market positioning without promotional language or subjective claims about quality or superiority",
     "company_type": "Public/Private/Subsidiary/Partnership",
     "fiscal_year_end": "Month and day of fiscal year end (e.g., December 31, March 31)",
@@ -27,20 +29,12 @@ Return your response as a valid JSON object with the following structure:
         "Major Competitor 1",
         "Major Competitor 2",
         "Major Competitor 3"
-    ],
-    "recent_news": [
-        {
-            "title": "Recent news article title 1",
-            "url": "https://example.com/news1"
-        },
-        {
-            "title": "Recent news article title 2",
-            "url": "https://example.com/news2"
-        }
     ]
 }
 
 Requirements:
+- confidence_score: integer 0–100 representing how confident you are that the input matches a real, known company. If the input does not appear to be a real company name, return a low confidence_score below 50. If it is a real company with a minor typo or abbreviation, return 85 or above.
+- matched_vendor_name: You MUST always populate matched_vendor_name with the full official company name. This field is required and must never be empty. If the input is already a correct company name, return it as-is.
 - CRITICAL: Always use the most recent data available. Search for current information from 2025-2026.
 - The vendor_profile_paragraph should be a well-written, professional summary suitable for inclusion in a business document
 - The vendor_profile_paragraph MUST be completely objective and analytical - NO marketing language, NO promotional tone, NO subjective claims about quality or value. Write as a neutral third-party observer describing factual business operations and market presence only.
@@ -49,7 +43,6 @@ Requirements:
 - Estimated Annual Revenue: Use the most recent fiscal year data available (2024 or later preferred)
 - Employees: Use current headcount (2025-2026 if available)
 - When providing financial data, always include the year (e.g., "$64B (FY 2024)" not just "$64B")
-- For recent_news, include exactly 2 relevant recent news articles from the past 3-6 months (2025-2026 articles strongly preferred)
 - Competitors should be 4-6 direct, major competitors based on current market positioning
 
 Return ONLY the JSON object, no additional text or formatting.`
@@ -76,10 +69,11 @@ Return ONLY the JSON object, no additional text or formatting.`
         const content = response.data.content[0].text
         // Extract JSON from content if it contains extra text
         const jsonMatch = content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0])
+        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content)
+        if (!parsed.matched_vendor_name) {
+            parsed.matched_vendor_name = vendorName
         }
-        return JSON.parse(content)
+        return parsed
     } catch (error) {
         const detail = error.response?.data
             ? JSON.stringify(error.response.data)

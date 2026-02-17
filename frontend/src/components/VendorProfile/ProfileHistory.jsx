@@ -28,15 +28,17 @@ const ProfileHistory = () => {
     const handleRegenerate = async (profile) => {
         setRegeneratingId(profile.id)
         try {
-            const response = await api.post('/vendor/generate', {
+            const researchResponse = await api.post('/vendor/research', {
                 clientName: profile.client_name,
-                vendorName: profile.vendor_name,
-                dealDescription: profile.deal_description,
-                forceRegenerate: true
+                vendorName: profile.vendor_name
             })
-            // Trigger download with auth
-            const path = response.data.downloadUrl.replace(/^\/api/, '')
-            const fileResponse = await api.get(path, { responseType: 'blob' })
+            const researchData = researchResponse.data.researchData
+
+            const fileResponse = await api.post(
+                '/vendor/generate',
+                { clientName: profile.client_name, vendorName: profile.vendor_name, researchData },
+                { responseType: 'blob' }
+            )
             const url = window.URL.createObjectURL(new Blob([fileResponse.data]))
             const link = document.createElement('a')
             link.href = url
@@ -45,6 +47,7 @@ const ProfileHistory = () => {
             link.click()
             link.remove()
             window.URL.revokeObjectURL(url)
+            await fetchHistory()
         } catch (err) {
             alert('Failed to regenerate document')
         } finally {

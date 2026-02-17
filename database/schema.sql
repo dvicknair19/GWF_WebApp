@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   user_id UUID REFERENCES auth.users(id),
   client_name TEXT NOT NULL,
   vendor_name TEXT NOT NULL,
-  deal_description TEXT,
+  deal_description TEXT, -- DEPRECATED: no longer collected or used; retained to avoid migration
   research_data JSONB NOT NULL,
   cache_used BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

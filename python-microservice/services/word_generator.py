@@ -33,7 +33,7 @@ def get_template_path():
     # Final fallback to env var or default
     return os.getenv('TEMPLATE_PATH', path)
 
-def generate_vendor_profile(client_name, vendor_name, deal_description, research_data):
+def generate_vendor_profile(client_name, vendor_name, research_data):
     template_path = get_template_path()
     
     if not os.path.exists(template_path):
@@ -41,12 +41,8 @@ def generate_vendor_profile(client_name, vendor_name, deal_description, research
 
     doc = Document(template_path)
 
-    # Prepare data - map research_data keys to match the document service expectations
-    mapped_data = research_data.copy()
-    mapped_data['deal_description'] = deal_description
-
     # Populate document using the logic ported from document_service.py
-    _populate_document(doc, mapped_data)
+    _populate_document(doc, research_data)
 
     # Legacy Placeholder Replacement (Safety net for simple templates)
     # Replaces [CLIENT_NAME] etc in logic
@@ -100,8 +96,6 @@ def _populate_table(table, vendor_data):
             elif "recent news" in label_text or "news" in label_text:
                 news_list = vendor_data.get("recent_news", [])
                 _set_news_list(value_cell, news_list)
-            elif "deal description" in label_text:
-                _set_cell_value(value_cell, vendor_data.get("deal_description", ""))
 
 def _handle_vendor_profile_paragraph(table, vendor_data):
     """Handle special vendor profile paragraph placement."""
@@ -163,30 +157,31 @@ def _add_hyperlink(paragraph, text, url):
 
 def _set_news_list(cell, news_list):
     """Populate news items as bullet points with hyperlinks."""
-    for p in cell.paragraphs:
-        p.clear()
+    # Remove all existing paragraph elements from the cell's XML
+    tc = cell._tc
+    for p_elem in tc.findall(qn('w:p')):
+        tc.remove(p_elem)
+    # Reset: add exactly one empty paragraph (python-docx requires at least one)
+    cell.add_paragraph()
 
     if not news_list:
-        if not cell.paragraphs: cell.add_paragraph()
         cell.paragraphs[0].text = "No recent news available"
         return
 
     if not isinstance(news_list, list):
         news_list = [news_list]
 
-    if not cell.paragraphs:
-        cell.add_paragraph()
-
-    for i, item in enumerate(news_list):
-        paragraph = cell.paragraphs[0] if i == 0 else cell.add_paragraph()
-
+    for item in news_list:
+        p = cell.add_paragraph(style='List Bullet')
         if isinstance(item, dict):
             title = item.get("title", item.get("headline", ""))
             url = item.get("url", "")
-            paragraph.add_run("• ")
             if url and url.startswith("http"):
-                _add_hyperlink(paragraph, title, url)
+                _add_hyperlink(p, title, url)
             else:
-                paragraph.add_run(title)
+                p.add_run(title)
         else:
-            paragraph.add_run(f"• {item}")
+            p.add_run(str(item))
+
+    # Remove the initial placeholder paragraph now that news paragraphs exist
+    tc.remove(tc.findall(qn('w:p'))[0])
