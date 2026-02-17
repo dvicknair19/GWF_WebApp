@@ -7,9 +7,14 @@ import Layout from './components/Layout/Layout'
 import ProfileForm from './components/VendorProfile/ProfileForm'
 import ProfileHistory from './components/VendorProfile/ProfileHistory'
 
-const isInviteFlow = () => {
+// Captured at module load time — before Supabase can clear the hash asynchronously
+const isInviteFlow = (() => {
   const params = new URLSearchParams(window.location.hash.replace('#', ''))
   return params.get('type') === 'invite'
+})()
+
+function RootRoute() {
+  return isInviteFlow ? <SetPassword /> : <ProfileForm />
 }
 
 function App() {
@@ -19,7 +24,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="/" element={isInviteFlow() ? <SetPassword /> : <ProfileForm />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/history" element={<ProfileHistory />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
