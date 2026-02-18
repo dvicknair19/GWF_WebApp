@@ -53,8 +53,6 @@ const getRecentNews = async (vendorName, researchContext = {}) => {
     const performSearch = async (q) => {
         const response = await client.search(q, {
             topic: 'news',
-            search_depth: 'advanced',
-            include_answer: true,
             max_results: 2,
             days: 120,
             include_domains: [
