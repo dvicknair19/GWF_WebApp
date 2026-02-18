@@ -42,7 +42,8 @@ def generate_vendor_profile(client_name, vendor_name, research_data):
     doc = Document(template_path)
 
     # Populate document using the logic ported from document_service.py
-    _populate_document(doc, research_data)
+    # Populate document using the logic ported from document_service.py
+    _populate_document(doc, research_data, client_name)
 
     # Legacy Placeholder Replacement (Safety net for simple templates)
     # Replaces [CLIENT_NAME] etc in logic
@@ -62,8 +63,16 @@ def generate_vendor_profile(client_name, vendor_name, research_data):
 
 # --- Helper functions ported and adapted from document_service.py ---
 
-def _populate_document(doc, vendor_data):
-    """Populate document tables with vendor data."""
+def _populate_document(doc, vendor_data, client_name=None):
+    """Populate document tables and paragraphs with vendor data."""
+    # 1. Search paragraphs for "Report Created For:"
+    if client_name:
+        for p in doc.paragraphs:
+            if "report created for" in p.text.lower():
+                # Append client name to the end of the paragraph
+                p.add_run(f" {client_name}")
+
+    # 2. Populate tables
     for table in doc.tables:
         _populate_table(table, vendor_data)
 
@@ -71,6 +80,7 @@ def _populate_table(table, vendor_data):
     """Populate a single table with vendor data."""
     # Special handlers
     _handle_vendor_profile_paragraph(table, vendor_data)
+    _handle_vendor_reseller(table, vendor_data)
 
     for row in table.rows:
         if len(row.cells) >= 2:
@@ -96,6 +106,21 @@ def _populate_table(table, vendor_data):
             elif "recent news" in label_text or "news" in label_text:
                 news_list = vendor_data.get("recent_news", [])
                 _set_news_list(value_cell, news_list)
+
+def _handle_vendor_reseller(table, vendor_data):
+    """Handle 'Vendor / Reseller' table header mapping."""
+    for i, row in enumerate(table.rows):
+        for j, cell in enumerate(row.cells):
+            if "vendor / reseller" in cell.text.lower():
+                # Target cell is the one directly below (next row, same column)
+                if i + 1 < len(table.rows):
+                    target_row = table.rows[i + 1]
+                    if j < len(target_row.cells):
+                        target_cell = target_row.cells[j]
+                        # Prioritize matched name, fallback to generic name in data
+                        name = vendor_data.get("matched_vendor_name") or vendor_data.get("vendor_name", "")
+                        _set_cell_value(target_cell, name)
+                return # Stop after first match
 
 def _handle_vendor_profile_paragraph(table, vendor_data):
     """Handle special vendor profile paragraph placement."""
