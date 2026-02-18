@@ -17,6 +17,7 @@ router.post('/research', authenticate, async (req, res) => {
         }
 
         let researchData = null
+        let newsResults = []
         let cached = false
         let updatedAt = new Date()
 
@@ -24,9 +25,10 @@ router.post('/research', authenticate, async (req, res) => {
         if (!forceRegenerate) {
             const cachedRecord = await cacheService.getCachedVendor(vendorName)
             if (cachedRecord) {
-                researchData = cachedRecord.research_data
+                researchData = cachedRecord.researchData
+                newsResults = cachedRecord.newsResults
                 cached = true
-                updatedAt = cachedRecord.updated_at
+                updatedAt = cachedRecord.updatedAt
             }
         }
 
@@ -41,13 +43,26 @@ router.post('/research', authenticate, async (req, res) => {
                 })
             }
 
-            // 3. Update cache
-            await cacheService.cacheVendor(vendorName, researchData)
+            // 2b. Fetch Tavily News immediately
+            try {
+                const lookupName = researchData.matched_vendor_name || vendorName
+                newsResults = await newsService.getRecentNews(lookupName, {
+                    matched_vendor_name: researchData.matched_vendor_name,
+                    company_type: researchData.company_type
+                })
+            } catch (newsErr) {
+                console.error('News fetch error during research:', newsErr)
+                // Fallback: empty news if Tavily fails, but we still have good research
+                newsResults = []
+            }
+
+            // 3. Update cache (store BOTH)
+            await cacheService.cacheVendor(vendorName, researchData, newsResults)
             updatedAt = new Date()
         }
 
-        // 4. Return research data for review — no DB save, no Tavily, no doc generation
-        res.json({ researchData, cached, updatedAt })
+        // 4. Return research data AND news for review
+        res.json({ researchData, newsResults, cached, updatedAt })
 
     } catch (error) {
         console.error('Research error:', error)
@@ -58,19 +73,30 @@ router.post('/research', authenticate, async (req, res) => {
 // Step 2: Generate Document (called after user confirms review)
 router.post('/generate', authenticate, async (req, res) => {
     try {
-        const { clientName, vendorName, researchData, cacheUsed = true } = req.body
+        const { clientName, vendorName, researchData, newsResults, cacheUsed = true } = req.body
         const userId = req.user.id
 
         if (!clientName || !vendorName || !researchData) {
             return res.status(400).json({ error: 'clientName, vendorName, and researchData are required' })
         }
 
-        // 1. Fetch real news via Tavily
-        const lookupName = researchData.matched_vendor_name || vendorName
-        const recentNews = await newsService.getRecentNews(lookupName)
+        // 1. Use provided news results OR fetch fresh if missing (fallback)
+        let finalNews = newsResults
+        if (!finalNews || finalNews.length === 0) {
+            try {
+                const lookupName = researchData.matched_vendor_name || vendorName
+                finalNews = await newsService.getRecentNews(lookupName, {
+                    matched_vendor_name: researchData.matched_vendor_name,
+                    company_type: researchData.company_type
+                })
+            } catch (err) {
+                console.error('Fallback news fetch failed:', err)
+                finalNews = []
+            }
+        }
 
-        // 2. Merge Tavily news into research data
-        const enrichedResearch = { ...researchData, recent_news: recentNews }
+        // 2. Merge news into research data for generation
+        const enrichedResearch = { ...researchData, recent_news: finalNews }
 
         // 3. Pre-check: find existing profile record for this vendor (dedup key: vendor_name, case-insensitive)
         const normalizedVendor = vendorName.trim()
@@ -89,8 +115,14 @@ router.post('/generate', authenticate, async (req, res) => {
         })
 
         // 5. Stream file back to frontend
+        const date = new Date()
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const monthAbbr = months[date.getMonth()]
+        const year = date.getFullYear()
+        const filename = `GWFMOA_${clientName}_${vendorName}_${monthAbbr},${year}.docx`
+
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        res.setHeader('Content-Disposition', `attachment; filename="${clientName}_${vendorName}_MOA.docx"`)
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
         res.send(Buffer.from(docBuffer))
 
         // 6. Apply dedup rule to profiles table after stream (errors are logged, not returned to client)
@@ -150,8 +182,14 @@ router.get('/download/:id', authenticate, async (req, res) => {
         })
 
         // 3. Send file
+        const date = new Date()
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const monthAbbr = months[date.getMonth()]
+        const year = date.getFullYear()
+        const filename = `GWFMOA_${profile.client_name}_${profile.vendor_name}_${monthAbbr},${year}.docx`
+
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        res.setHeader('Content-Disposition', `attachment; filename="${profile.client_name}_${profile.vendor_name}_MOA.docx"`)
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
         res.send(Buffer.from(docBuffer))
 
     } catch (error) {

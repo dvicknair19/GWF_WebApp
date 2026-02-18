@@ -33,16 +33,21 @@ const ProfileHistory = () => {
                 vendorName: profile.vendor_name
             })
             const researchData = researchResponse.data.researchData
+            const newsResults = researchResponse.data.newsResults
 
             const fileResponse = await api.post(
                 '/vendor/generate',
-                { clientName: profile.client_name, vendorName: profile.vendor_name, researchData },
+                { clientName: profile.client_name, vendorName: profile.vendor_name, researchData, newsResults },
                 { responseType: 'blob' }
             )
             const url = window.URL.createObjectURL(new Blob([fileResponse.data]))
             const link = document.createElement('a')
             link.href = url
-            link.setAttribute('download', `${profile.client_name}_${profile.vendor_name}_MOA.docx`)
+            const _date = new Date()
+            const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            const _monthAbbr = _months[_date.getMonth()]
+            const _year = _date.getFullYear()
+            link.setAttribute('download', `GWFMOA_${profile.client_name}_${profile.vendor_name}_${_monthAbbr},${_year}.docx`)
             document.body.appendChild(link)
             link.click()
             link.remove()

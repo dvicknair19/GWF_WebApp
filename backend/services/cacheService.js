@@ -21,17 +21,33 @@ const getCachedVendor = async (vendorName) => {
         return null // Expired
     }
 
-    return data
+    // Determine if new structure or old legacy structure
+    let researchData = data.research_data
+    let newsResults = []
+
+    if (researchData && researchData.claudeData) {
+        // New structure
+        newsResults = researchData.tavilyNews || []
+        researchData = researchData.claudeData
+    }
+    // Else: it's legacy structure (just claude data), newsResults remains []
+
+    return { researchData, newsResults, updatedAt: data.updated_at }
 }
 
-const cacheVendor = async (vendorName, researchData) => {
-    // Upsert
+const cacheVendor = async (vendorName, researchData, newsResults = []) => {
+    // Store as composed object
+    const cachePayload = {
+        claudeData: researchData,
+        tavilyNews: newsResults
+    }
+
     const { data, error } = await supabase
         .from('vendor_cache')
         .upsert(
             {
                 vendor_name: vendorName,
-                research_data: researchData,
+                research_data: cachePayload,
                 updated_at: new Date().toISOString()
             },
             { onConflict: 'vendor_name' }

@@ -7,7 +7,7 @@ const Field = ({ label, value }) => (
     </div>
 )
 
-const ReviewModal = ({ data, loading, onConfirm, onCancel }) => {
+const ReviewModal = ({ data, news, loading, onConfirm, onCancel }) => {
     const competitors = Array.isArray(data.competitors_core)
         ? data.competitors_core.join(', ')
         : data.competitors_core || '—'
@@ -50,6 +50,30 @@ const ReviewModal = ({ data, loading, onConfirm, onCancel }) => {
                             rows={6}
                             className="w-full text-sm text-gray-900 border border-gray-300 rounded-md p-3 resize-none focus:outline-none bg-gray-50"
                         />
+                    </div>
+
+                    <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                            Recent News
+                        </dt>
+                        {news && news.length > 0 ? (
+                            <ul className="space-y-2">
+                                {news.map((item, index) => (
+                                    <li key={index} className="text-sm">
+                                        <a
+                                            href={item.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline hover:text-blue-800"
+                                        >
+                                            {item.title}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-gray-500 italic">No recent news found</p>
+                        )}
                     </div>
                 </div>
 

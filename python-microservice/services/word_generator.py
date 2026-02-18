@@ -70,7 +70,18 @@ def _populate_document(doc, vendor_data, client_name=None):
         for p in doc.paragraphs:
             if "report created for" in p.text.lower():
                 # Append client name to the end of the paragraph
-                p.add_run(f" {client_name}")
+                run = p.add_run(f" {client_name}")
+                # Copy font style from the first run if it exists
+                if p.runs:
+                    first_run = p.runs[0]
+                    run.bold = first_run.bold
+                    run.italic = first_run.italic
+                    run.underline = first_run.underline
+                    run.font.name = first_run.font.name
+                    run.font.size = first_run.font.size
+                    run.font.color.rgb = first_run.font.color.rgb
+                    if first_run.style:
+                         run.style = first_run.style
 
     # 2. Populate tables
     for table in doc.tables:
