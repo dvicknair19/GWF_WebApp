@@ -1,10 +1,10 @@
 const express = require('express')
 const router = express.Router()
 const authenticate = require('../middleware/auth')
+const researchService = require('../services/researchService')
 const claudeService = require('../services/claudeService')
 const cacheService = require('../services/cacheService')
 const documentService = require('../services/documentService')
-const newsService = require('../services/newsService')
 const supabase = require('../services/supabaseService')
 
 // Step 1: Research Vendor (Claude only — returns data for user review)
@@ -32,31 +32,18 @@ router.post('/research', authenticate, async (req, res) => {
             }
         }
 
-        // 2. Call Claude if not cached
+        // 2. Conduct research if not cached
         if (!researchData) {
-            researchData = await claudeService.researchVendor(vendorName)
+            // researchService returns unified object with research + news
+            const unifiedData = await researchService.conductResearch(vendorName)
 
-            // 2a. Confidence check — bail early if Claude can't identify the vendor
-            if ((researchData.confidence_score ?? 100) < 70) {
-                return res.status(422).json({
-                    error: `Company not found. '${vendorName}' could not be identified as a known vendor. Please check the spelling and try again.`
-                })
-            }
+            // Format with Claude
+            researchData = await claudeService.formatResearchData(unifiedData)
 
-            // 2b. Fetch Tavily News immediately
-            try {
-                const lookupName = researchData.matched_vendor_name || vendorName
-                newsResults = await newsService.getRecentNews(lookupName, {
-                    matched_vendor_name: researchData.matched_vendor_name,
-                    company_type: researchData.company_type
-                })
-            } catch (newsErr) {
-                console.error('News fetch error during research:', newsErr)
-                // Fallback: empty news if Tavily fails, but we still have good research
-                newsResults = []
-            }
+            // Extract news from unified data
+            newsResults = researchData.recent_news || []
 
-            // 3. Update cache (store BOTH)
+            // 3. Update cache
             await cacheService.cacheVendor(vendorName, researchData, newsResults)
             updatedAt = new Date()
         }
@@ -66,6 +53,15 @@ router.post('/research', authenticate, async (req, res) => {
 
     } catch (error) {
         console.error('Research error:', error)
+
+        // Handle confidence errors with 422
+        if (error.message === 'Company not recognized' || error.message.includes('confidence')) {
+            const vendorNameDisplay = req.body.vendorName || 'the provided vendor'
+            return res.status(422).json({
+                error: `Company not found. '${vendorNameDisplay}' could not be identified as a known vendor. Please check the spelling and try again.`
+            })
+        }
+
         res.status(500).json({ error: error.message || 'Failed to research vendor' })
     }
 })
@@ -80,25 +76,11 @@ router.post('/generate', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'clientName, vendorName, and researchData are required' })
         }
 
-        // 1. Use provided news results OR fetch fresh if missing (fallback)
-        let finalNews = newsResults
-        if (!finalNews || finalNews.length === 0) {
-            try {
-                const lookupName = researchData.matched_vendor_name || vendorName
-                finalNews = await newsService.getRecentNews(lookupName, {
-                    matched_vendor_name: researchData.matched_vendor_name,
-                    company_type: researchData.company_type
-                })
-            } catch (err) {
-                console.error('Fallback news fetch failed:', err)
-                finalNews = []
-            }
-        }
-
-        // 2. Merge news into research data for generation
+        // 1. Merge news into research data for generation
+        const finalNews = newsResults || []
         const enrichedResearch = { ...researchData, recent_news: finalNews }
 
-        // 3. Pre-check: find existing profile record for this vendor (dedup key: vendor_name, case-insensitive)
+        // 2. Pre-check: find existing profile record for this vendor (dedup key: vendor_name, case-insensitive)
         const normalizedVendor = vendorName.trim()
         const { data: existingProfiles } = await supabase
             .from('profiles')
@@ -107,14 +89,14 @@ router.post('/generate', authenticate, async (req, res) => {
             .limit(1)
         const existingProfile = existingProfiles?.[0] ?? null
 
-        // 4. Generate Word doc via Python microservice — always runs regardless of dedup rule
+        // 3. Generate Word doc via Python microservice — always runs regardless of dedup rule
         const docBuffer = await documentService.generateDocument({
             client_name: clientName,
             vendor_name: vendorName,
             research_data: enrichedResearch
         })
 
-        // 5. Stream file back to frontend
+        // 4. Stream file back to frontend
         const date = new Date()
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         const monthAbbr = months[date.getMonth()]
@@ -125,7 +107,7 @@ router.post('/generate', authenticate, async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
         res.send(Buffer.from(docBuffer))
 
-        // 6. Apply dedup rule to profiles table after stream (errors are logged, not returned to client)
+        // 5. Apply dedup rule to profiles table after stream (errors are logged, not returned to client)
         try {
             if (!cacheUsed) {
                 // Rule 3: force regenerated — delete all existing records for this vendor, insert fresh
